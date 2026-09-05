@@ -35,9 +35,9 @@ export function _startLoop(engine: ChartEngine): void {
     engine._rafId = requestAnimationFrame(loop);
 
     // Redraw the main chart when its state has changed.
+    // The chart skeleton (background, grid and price scale) is always
+    // rendered, even before any historical data is available.
     if (engine.dirty) {
-      if (!engine.hasData) return;
-
       const { lo, hi } = _visiblePriceRange(engine);
 
       _renderMain(engine, lo, hi);

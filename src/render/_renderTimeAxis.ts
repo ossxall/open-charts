@@ -14,11 +14,6 @@ import { _timeGridBars } from "./_timeGridBars";
  * @param engine Chart engine instance.
  */
 export function _renderTimeAxis(engine: ChartEngine): void {
-  // Nothing to render if there is no data.
-  if (!engine.hasData) {
-    return;
-  }
-
   const ctx = engine.ctxTime;
   const pane = engine.panes.time;
 
@@ -28,6 +23,11 @@ export function _renderTimeAxis(engine: ChartEngine): void {
   // Paint the background.
   ctx.fillStyle = engine.options.colors.bg;
   ctx.fillRect(0, 0, pane.w, pane.h);
+
+  // Nothing to label if there is no data.
+  if (!engine.hasData) {
+    return;
+  }
 
   const chartW = engine.chartW;
 
