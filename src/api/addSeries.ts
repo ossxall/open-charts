@@ -1,4 +1,5 @@
 import type { ChartEngine } from "../core/ChartEngine";
+import { _updateIndicatorLegend } from "../ui/_updateIndicatorLegend";
 import {
   ChartSeries,
   type AnyChartSeries,
@@ -35,6 +36,10 @@ export function addSeries<
 
   // Register the series using its unique identifier.
   engine._series.set(def.id, entry);
+
+  // Show the series in the indicator legend right away,
+  // even before any history data is available.
+  _updateIndicatorLegend(engine, -1);
 
   // Enable method chaining.
   return entry;
