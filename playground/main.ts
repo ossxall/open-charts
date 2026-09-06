@@ -163,6 +163,15 @@ const chart1_squeeze = chart1_pane2.api.addSeries(
 );
 //------------------------------------------------------------------------------------
 
+// Subscribe to global chart events (includes events from all series).
+// Open an indicator's settings (gear icon) and hit Apply to see
+// the `series:params` event logged here.
+chart1.subscribe((event) => {
+  console.log("[chart-event]", event.type, event);
+});
+
+//------------------------------------------------------------------------------------
+
 const ws = new WebSocket("ws://localhost:3000/api/market/ws");
 ws.binaryType = "arraybuffer";
 

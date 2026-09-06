@@ -19,6 +19,7 @@ export * from "./PriceViewport";
 export * from "./ChartPanes";
 export * from "./ChartSeries";
 export * from "./ChartCore";
+export * from "./ChartEvent";
 export * from "./LegendItem";
 export * from "./MouseState";
 export * from "./PanOrigin";

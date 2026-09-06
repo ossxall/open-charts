@@ -1,5 +1,6 @@
 import type { ChartEngine } from "../core/ChartEngine";
 import { _updateIndicatorLegend } from "../ui/_updateIndicatorLegend";
+import { _isParamDescriptor } from "../utils/_paramValue";
 import {
   ChartSeries,
   type AnyChartSeries,
@@ -27,7 +28,11 @@ export function addSeries<
 
   if (def.params) {
     for (const [key, field] of Object.entries(def.params)) {
-      params[key] = { ...(field as any) };
+      if (_isParamDescriptor(field)) {
+        params[key] = { ...(field as object) };
+      } else {
+        params[key] = field;
+      }
     }
   }
 
@@ -36,6 +41,12 @@ export function addSeries<
 
   // Register the series using its unique identifier.
   engine._series.set(def.id, entry);
+
+  engine.emit({
+    type: "series:added",
+    seriesId: def.id,
+    series: entry,
+  });
 
   // Show the series in the indicator legend right away,
   // even before any history data is available.

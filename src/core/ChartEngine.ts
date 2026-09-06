@@ -39,9 +39,12 @@ import { _updateSeriesIncremental } from "./_updateSeriesIncremental";
 import { ChartApi } from "../api/types";
 import {
   ChartCore,
+  ChartEventBus,
   DragMode,
   HoverArea,
   type AnyChartSeries,
+  type ChartEvent,
+  type ChartEventListener,
   type ChartPanes,
   type MouseState,
   type PanOrigin,
@@ -276,6 +279,14 @@ export class ChartEngine {
 
   public crosshairPlusButton!: HTMLElement;
 
+  /**
+   * Global event bus.
+   *
+   * All chart events — including events originating from any series —
+   * are dispatched through this bus to every subscriber.
+   */
+  public _eventBus: ChartEventBus;
+
   constructor(area: HTMLElement) {
     this.options = { ...DEFAULT_OPTIONS };
 
@@ -351,6 +362,8 @@ export class ChartEngine {
 
     this._abortController = new AbortController();
 
+    this._eventBus = new ChartEventBus();
+
     this._init();
   }
 
@@ -381,5 +394,47 @@ export class ChartEngine {
 
   get primarySeries(): AnyChartSeries {
     return this._series.values().next().value!;
+  }
+
+  /**
+   * Subscribes to global chart events.
+   *
+   * The listener receives every event dispatched by the entire chart
+   * engine, including events originating from all chart series
+   * (e.g. series data, visibility, parameters, add/remove).
+   *
+   * @param listener - Listener invoked for every chart event.
+   * @returns An unsubscribe function.
+   *
+   * @example
+   * const unsubscribe = chart.subscribe((event) => {
+   *   if (event.type === "series:params") {
+   *     console.log(event.seriesId, event.params);
+   *   }
+   * });
+   */
+  public subscribe(listener: ChartEventListener): () => void {
+    return this._eventBus.subscribe(listener);
+  }
+
+  /**
+   * Removes a previously registered chart event listener.
+   *
+   * @param listener - Listener to remove.
+   */
+  public unsubscribe(listener: ChartEventListener): void {
+    this._eventBus.unsubscribe(listener);
+  }
+
+  /**
+   * Dispatches an event to every chart subscriber.
+   *
+   * This method is used internally by the engine and by series to
+   * broadcast events to all subscribed listeners.
+   *
+   * @param event - Event to dispatch.
+   */
+  public emit(event: ChartEvent): void {
+    this._eventBus.emit(event);
   }
 }

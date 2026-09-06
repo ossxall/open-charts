@@ -18,6 +18,7 @@ import type { ChartEngine } from "../ChartEngine";
 import type { MainPane } from "./ChartPanes";
 import type { LegendItem } from "./LegendItem";
 import type { PriceTag } from "./PriceTag";
+import { _isParamDescriptor } from "../../utils/_paramValue";
 
 export interface TimePoint {
   time: number;
@@ -197,6 +198,13 @@ export class ChartSeries<
     this.engine.timeScale.scrollToRealTime();
 
     this.engine.dirty = true;
+
+    this.engine.emit({
+      type: "series:data",
+      seriesId: this.def.id,
+      source: "set",
+      series: this,
+    });
   }
 
   public patchData(data: readonly TData[]): void {
@@ -225,6 +233,13 @@ export class ChartSeries<
     this.engine.priceScale.updateLayout();
 
     this.engine.dirty = true;
+
+    this.engine.emit({
+      type: "series:data",
+      seriesId: this.def.id,
+      source: "patch",
+      series: this,
+    });
   }
 
   public update(bar: TData): boolean {
@@ -265,6 +280,13 @@ export class ChartSeries<
 
     this.engine.dirty = true;
 
+    this.engine.emit({
+      type: "series:data",
+      seriesId: this.def.id,
+      source: "update",
+      series: this,
+    });
+
     return true;
   }
 
@@ -275,8 +297,19 @@ export class ChartSeries<
    * @returns The series instance.
    */
   public setVisible(visible: boolean): this {
+    const changed = this.enabled !== visible;
+
     this.enabled = visible;
     this.engine.dirty = true;
+
+    if (changed) {
+      this.engine.emit({
+        type: "series:visibility",
+        seriesId: this.def.id,
+        visible,
+        series: this,
+      });
+    }
 
     return this;
   }
@@ -288,5 +321,85 @@ export class ChartSeries<
     this.engine._series.delete(this.def.id);
     this.engine.dirty = true;
     this.engine.hasData = false;
+
+    this.engine.emit({
+      type: "series:removed",
+      seriesId: this.def.id,
+      series: this,
+    });
+  }
+
+  /**
+   * Updates series parameters.
+   *
+   * Parameter values may be passed as plain values or as descriptor
+   * objects (`{ value }`). When a parameter is marked as affecting the
+   * computation, the series data is recomputed after the update.
+   *
+   * @param patch - Partial map of parameter values to update.
+   * @returns The series instance.
+   */
+  public setParams(patch: Partial<TParams>): this {
+    let needsRecompute = false;
+
+    for (const [key, raw] of Object.entries(patch)) {
+      const current = (this.params as Record<string, unknown>)[key];
+
+      if (current === undefined) continue;
+
+      const next = _isParamDescriptor(raw)
+        ? (raw as { value: unknown }).value
+        : raw;
+
+      if (_isParamDescriptor(current)) {
+        const descriptor = current as { value: unknown; affectsCompute?: boolean };
+        (this.params as Record<string, unknown>)[key] = {
+          ...descriptor,
+          value: next,
+        };
+
+        if (descriptor.affectsCompute) needsRecompute = true;
+      } else {
+        (this.params as Record<string, unknown>)[key] = next;
+      }
+    }
+
+    if (needsRecompute) {
+      this.values = (this.def.compute as (
+        data: readonly TData[],
+        params: TParams,
+      ) => TValue[])(this.data, this.params);
+    }
+
+    this.engine.dirty = true;
+
+    this.engine.emit({
+      type: "series:params",
+      seriesId: this.def.id,
+      params: this.getParams(),
+      series: this,
+    });
+
+    return this;
+  }
+
+  /**
+   * Returns the current parameter values as a plain map.
+   *
+   * Descriptor objects are unwrapped so only their effective `value`
+   * is returned.
+   */
+  public getParams(): Record<string, unknown> {
+    const out: Record<string, unknown> = {};
+
+    for (const [key, field] of Object.entries(
+      this.params as Record<string, unknown>,
+    )) {
+      out[key] = _isParamDescriptor(field)
+        ? (field as { value: unknown }).value
+        : field;
+    }
+
+    return out;
   }
 }
