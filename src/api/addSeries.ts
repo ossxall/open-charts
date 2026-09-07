@@ -23,7 +23,9 @@ export function addSeries<
   TValue,
   TParams extends Record<string, unknown>,
 >(engine: ChartEngine, def: AnySeriesDefinition): AnyChartSeries {
+  //
   // Clone the indicator parameter definitions.
+  //
   const params: Record<string, unknown> = {};
 
   if (def.params) {
@@ -35,23 +37,27 @@ export function addSeries<
       }
     }
   }
-
+  //
   // Create the series instance.
+  //
   const entry: AnyChartSeries = new ChartSeries(engine, def, params);
-
+  //
   // Register the series using its unique identifier.
+  //
   engine._series.set(def.id, entry);
-
+  //
+  // Emit the event to UI subscribers.
+  //
   engine.emit({
     type: "series:added",
     seriesId: def.id,
     series: entry,
   });
-
-  // Show the series in the indicator legend right away,
+  //
+  // Show the series in the indicator legend right away, 
   // even before any history data is available.
+  //
   _updateIndicatorLegend(engine, -1);
 
-  // Enable method chaining.
   return entry;
 }
