@@ -36,7 +36,7 @@ import { _indexAtX } from "../utils/_indexAtX";
 import { _recomputeSeries } from "./_recomputeSeries";
 import { _isDifferentBar } from "../utils/_isDifferentBar";
 import { _updateSeriesIncremental } from "./_updateSeriesIncremental";
-import { ChartApi } from "../api/types";
+import { ChartApi } from "../api/types/ChartApi";
 import {
   ChartCore,
   ChartEventBus,
