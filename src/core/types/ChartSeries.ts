@@ -291,10 +291,12 @@ export class ChartSeries<
   }
 
   /**
+   * 
    * Enables or disables the series.
    *
    * @param visible Whether the series should be rendered.
    * @returns The series instance.
+   * 
    */
   public setVisible(visible: boolean): this {
     const changed = this.enabled !== visible;
@@ -315,7 +317,9 @@ export class ChartSeries<
   }
 
   /**
+   * 
    * Removes the series from the chart.
+   * 
    */
   public destroy(): void {
     this.engine._series.delete(this.def.id);
@@ -330,14 +334,14 @@ export class ChartSeries<
   }
 
   /**
-   * Updates series parameters.
    *
-   * Parameter values may be passed as plain values or as descriptor
+   * Updates series parameters. Parameter values may be passed as plain values or as descriptor
    * objects (`{ value }`). When a parameter is marked as affecting the
    * computation, the series data is recomputed after the update.
    *
    * @param patch - Partial map of parameter values to update.
    * @returns The series instance.
+   * 
    */
   public setParams(patch: Partial<TParams>): this {
     let needsRecompute = false;
@@ -384,10 +388,11 @@ export class ChartSeries<
   }
 
   /**
+   * 
    * Returns the current parameter values as a plain map.
-   *
    * Descriptor objects are unwrapped so only their effective `value`
    * is returned.
+   * 
    */
   public getParams(): Record<string, unknown> {
     const out: Record<string, unknown> = {};

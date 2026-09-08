@@ -15,15 +15,19 @@
 
 import type { AnyChartSeries } from "./ChartSeries";
 
-/** Source of a series data update. */
+/** 
+ * 
+ * Source of a series data update. 
+ * 
+*/
 export type SeriesDataSource = "set" | "patch" | "update";
 
 /**
- * Event dispatched to every chart subscriber.
- *
+ * 
  * Events cover the whole engine lifecycle and every registered series,
  * so a single `subscribe()` call receives global events from anywhere
  * inside the chart.
+ * 
  */
 export type ChartEvent =
   | {
@@ -55,24 +59,30 @@ export type ChartEvent =
       series: AnyChartSeries;
     };
 
-/** Callback invoked for every event dispatched by the chart. */
+/** 
+ * 
+ * Callback invoked for every event dispatched by the chart.
+ * 
+*/
 export type ChartEventListener = (event: ChartEvent) => void;
 
 /**
- * Generic synchronous event bus used by the chart engine.
- *
- * All registered listeners receive every dispatched event. An event is
- * dispatched to all subscribers, including events originating from any
- * chart series.
+ * 
+ * Generic synchronous event bus used by the chart engine. 
+ * All registered listeners receive every dispatched event. 
+ * An event is dispatched to all subscribers.
+ * 
  */
 export class ChartEventBus {
   private _listeners: Set<ChartEventListener> = new Set();
 
   /**
+   * 
    * Registers a listener and returns a function that unsubscribes it.
-   *
+   * 
    * @param listener - Listener invoked for every chart event.
    * @returns An unsubscribe function.
+   * 
    */
   public subscribe(listener: ChartEventListener): () => void {
     this._listeners.add(listener);
@@ -82,21 +92,24 @@ export class ChartEventBus {
   }
 
   /**
+   * 
    * Removes a previously registered listener.
-   *
+   * 
    * @param listener - Listener to remove.
+   * 
    */
   public unsubscribe(listener: ChartEventListener): void {
     this._listeners.delete(listener);
   }
 
   /**
+   * 
    * Dispatches an event to every registered listener.
-   *
    * A failing listener does not prevent the remaining listeners from
    * receiving the event.
-   *
+   * 
    * @param event - Event to dispatch.
+   * 
    */
   public emit(event: ChartEvent): void {
     for (const listener of this._listeners) {
