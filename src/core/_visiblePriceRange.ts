@@ -30,7 +30,13 @@ export function _visiblePriceRange(engine: ChartEngine): PriceRange {
   const primary = engine.primarySeries;
 
   if (primary.def.valueRange) {
-    const range = primary.def.valueRange(primary.data, primary.values, vs, ve);
+    const range = primary.def.valueRange(
+      primary.data,
+      primary.values,
+      vs,
+      ve,
+      primary.params,
+    );
 
     lo = range.lo;
     hi = range.hi;

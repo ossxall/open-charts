@@ -88,6 +88,7 @@ export const ADXSeries = (config: ADXConfig) => {
       engine: ChartEngine,
       _data: ADXValue[],
       values: ADXValue[],
+      params: ADXParams,
       priceMin: number,
       priceMax: number,
     ): void {
@@ -159,7 +160,7 @@ export const ADXSeries = (config: ADXConfig) => {
       // Key level
       const y =
         Math.round(
-          engine.utils.yOf(this.params.keyLevel, pane, priceMin, priceMax),
+          engine.utils.yOf(params.keyLevel, pane, priceMin, priceMax),
         ) + 0.5;
 
       ctx.save();
@@ -216,7 +217,7 @@ export const ADXSeries = (config: ADXConfig) => {
 
     priceTagColor: "#6CFF4C",
 
-    valueRange(data, values, start, end) {
+    valueRange(data, values, start, end, params) {
       let lo = Infinity;
       let hi = -Infinity;
 
@@ -249,8 +250,8 @@ export const ADXSeries = (config: ADXConfig) => {
       }
 
       // Always include the key level in the visible range.
-      lo = Math.min(lo, this.params.keyLevel);
-      hi = Math.max(hi, this.params.keyLevel);
+      lo = Math.min(lo, params.keyLevel);
+      hi = Math.max(hi, params.keyLevel);
 
       return { lo, hi };
     },

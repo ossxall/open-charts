@@ -149,12 +149,13 @@ export const CandleBubbleSeries = (config: CandleBubbleConfig) => {
       engine: ChartEngine,
       _data: CandleBubble[],
       values: CandleBubble[], // Mapeado a la estructura de datos OHLC
+      params: CandleBubbleParams,
       priceMin: number,
       priceMax: number,
     ): void {
       // 1. Extraer configuraciones dinámicas de los params o usar defaults
-      const bullCol = this.params.bullColor;
-      const bearCol = this.params.bearColor;
+      const bullCol = params.bullColor;
+      const bearCol = params.bearColor;
       const fancyFill = false;
 
       // 2. Extraer propiedades de dibujo desde el motor (engine)

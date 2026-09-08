@@ -20,14 +20,14 @@ function _renderLayer(
   priceMax: number,
   layer: "background" | "foreground",
 ): void {
-  engine._series.forEach(({ def, data, values, enabled }) => {
+  engine._series.forEach(({ def, data, values, params, enabled }) => {
     if (!enabled) return;
 
     if (def.layer !== layer) return;
 
     ctx.save();
 
-    def.render(ctx, pane, engine, data, values, priceMin, priceMax);
+    def.render(ctx, pane, engine, data, values, params, priceMin, priceMax);
 
     ctx.restore();
   });

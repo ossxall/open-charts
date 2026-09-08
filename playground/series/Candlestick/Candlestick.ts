@@ -154,12 +154,13 @@ export const Candlestick = (config: CandlestickConfig) => {
       engine: ChartEngine,
       _data: CandleBubble[],
       values: CandleBubble[], // Mapeado a la estructura de datos OHLC
+      params: CandlestickParams,
       priceMin: number,
       priceMax: number,
     ): void {
       // 1. Extraer configuraciones dinámicas de los params o usar defaults
-      const bullCol = this.params.bullColor;
-      const bearCol = this.params.bearColor;
+      const bullCol = params.bullColor;
+      const bearCol = params.bearColor;
       const fancyFill = false;
 
       // 2. Extraer propiedades de dibujo desde el motor (engine)
@@ -319,7 +320,12 @@ export const Candlestick = (config: CandlestickConfig) => {
       return { lo, hi };
     },
 
-    legend(data: CandleBubble[], values: CandleBubble[], barIndex: number) {
+    legend(
+      data: CandleBubble[],
+      values: CandleBubble[],
+      barIndex: number,
+      params: CandlestickParams,
+    ) {
       const d: CandleBubble = data[barIndex];
 
       if (!d) {
@@ -329,7 +335,7 @@ export const Candlestick = (config: CandlestickConfig) => {
       const pct = ((d.close - d.open) / d.open) * 100;
 
       const bull = d.close >= d.open;
-      const color = bull ? this.params.bullColor : this.params.bearColor;
+      const color = bull ? params.bullColor : params.bearColor;
 
       return [
         {

@@ -18,7 +18,11 @@ import type { ChartEngine } from "../ChartEngine";
 import type { MainPane } from "./ChartPanes";
 import type { LegendItem } from "./LegendItem";
 import type { PriceTag } from "./PriceTag";
-import { _isParamDescriptor } from "../../utils/_paramValue";
+import {
+  _isParamDescriptor,
+  _resolveParamValue,
+  type ParamDescriptor,
+} from "../../utils/_paramValue";
 
 export interface TimePoint {
   time: number;
@@ -59,8 +63,8 @@ export interface SeriesDefinition<
   /** Series parameters. */
   params: TParams;
 
-  /** Computes indicator values from the source data. */
-  compute(data: readonly TData[]): TValue[];
+  /** Computes indicator values from the source data and the current instance params. */
+  compute(data: readonly TData[], params: TParams): TValue[];
 
   /** Renders the series. */
   render(
@@ -69,6 +73,7 @@ export interface SeriesDefinition<
     engine: ChartEngine,
     data: readonly TData[],
     values: readonly TValue[],
+    params: TParams,
     priceMin: number,
     priceMax: number,
   ): void;
@@ -78,6 +83,7 @@ export interface SeriesDefinition<
     data: readonly TData[],
     values: TValue[],
     isNewBar: boolean,
+    params: TParams,
   ): void;
 
   /** Returns a tooltip row for the given index. */
@@ -97,12 +103,14 @@ export interface SeriesDefinition<
     values: readonly TValue[],
     start: number,
     end: number,
+    params: TParams,
   ): PriceRange;
 
   legend(
     data: readonly TData[],
     values: readonly TValue[],
     index: number,
+    params: TParams,
   ): readonly LegendItem[];
 }
 
@@ -183,7 +191,7 @@ export class ChartSeries<
 
     this.data = [...data];
 
-    this.values = this.def.compute(data);
+    this.values = this.def.compute(data, this.params);
 
     this.engine.hasData = data.length > 0;
 
@@ -224,7 +232,7 @@ export class ChartSeries<
 
     this.data = [...this.data, ...newData];
 
-    this.values = this.def.compute(this.data);
+    this.values = this.def.compute(this.data, this.params);
 
     this.engine.hasData = true;
 
@@ -265,7 +273,7 @@ export class ChartSeries<
       }
     }
 
-    this.values = this.def.compute(this.data);
+    this.values = this.def.compute(this.data, this.params);
 
     this.engine.hasData = this.data.length > 0;
 
@@ -335,44 +343,50 @@ export class ChartSeries<
 
   /**
    *
-   * Updates series parameters. Parameter values may be passed as plain values or as descriptor
-   * objects (`{ value }`). When a parameter is marked as affecting the
-   * computation, the series data is recomputed after the update.
+   * Updates series parameters.
+   *
+   * Only keys that already exist in the series' `params` are updated (unknown
+   * keys are ignored). Values may be plain or descriptor objects
+   * (`{ value }`); descriptors preserve their metadata and only replace
+   * their `value`. When an updated descriptor has `affectsCompute` set,
+   * `values` are recomputed with the series data and the new params, and
+   * the price scale layout is refreshed.
    *
    * @param patch - Partial map of parameter values to update.
    * @returns The series instance.
-   * 
+   *
    */
   public setParams(patch: Partial<TParams>): this {
+    const params = this.params as Record<string, unknown>;
+    let changed = false;
     let needsRecompute = false;
 
     for (const [key, raw] of Object.entries(patch)) {
-      const current = (this.params as Record<string, unknown>)[key];
+      const current = params[key];
 
       if (current === undefined) continue;
 
-      const next = _isParamDescriptor(raw)
-        ? (raw as { value: unknown }).value
-        : raw;
+      const next = _resolveParamValue(raw);
+      const isDescriptor = _isParamDescriptor(current);
 
-      if (_isParamDescriptor(current)) {
-        const descriptor = current as { value: unknown; affectsCompute?: boolean };
-        (this.params as Record<string, unknown>)[key] = {
-          ...descriptor,
-          value: next,
-        };
+      params[key] = isDescriptor
+        ? { ...(current as ParamDescriptor), value: next }
+        : next;
 
-        if (descriptor.affectsCompute) needsRecompute = true;
-      } else {
-        (this.params as Record<string, unknown>)[key] = next;
+      if (isDescriptor && (current as ParamDescriptor).affectsCompute) {
+        needsRecompute = true;
       }
+
+      changed = true;
+    }
+
+    if (!changed) {
+      return this;
     }
 
     if (needsRecompute) {
-      this.values = (this.def.compute as (
-        data: readonly TData[],
-        params: TParams,
-      ) => TValue[])(this.data, this.params);
+      this.values = this.def.compute(this.data, this.params);
+      this.engine.priceScale.updateLayout();
     }
 
     this.engine.dirty = true;

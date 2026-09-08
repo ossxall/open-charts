@@ -75,7 +75,7 @@ export function _updateIndicatorLegend(
     const opacity = enabled ? "1" : "0.4";
     const title = enabled ? "Click to hide" : "Click to show";
 
-    const legend = def.legend?.(data, values, barIndex) ?? [];
+    const legend = def.legend?.(data, values, barIndex, series.params) ?? [];
 
     const legendHtml = legend
       .map(

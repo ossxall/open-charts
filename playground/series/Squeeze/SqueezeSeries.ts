@@ -73,6 +73,7 @@ export const SqueezeSeries = (config: SqueezeConfig) => {
       engine: ChartEngine,
       _data: SqueezeValue[],
       values: SqueezeValue[],
+      _params: SqueezeParams,
       valueMin: number,
       valueMax: number,
     ) {

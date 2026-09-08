@@ -4,8 +4,8 @@ export function _updateSeriesIncremental(isNewBar) {
   this._series.forEach((entry) => {
     if (entry.def.updateIncremental) {
       entry.def.updateIncremental(
-        entry.values,
         this.data,
+        entry.values,
         isNewBar,
         entry.params,
       );

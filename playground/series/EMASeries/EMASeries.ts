@@ -62,11 +62,12 @@ export const EMA = (config: EMAConfig) => {
       engine: ChartEngine,
       _data: EMAValue[],
       values: EMAValue[],
+      params: EMAParams,
       priceMin: number,
       priceMax: number,
     ): void {
       ctx.strokeStyle = this.color;
-      ctx.lineWidth = this.params.lineWidth ?? 2;
+      ctx.lineWidth = params.lineWidth ?? 2;
       ctx.lineJoin = "round";
       ctx.beginPath();
       let started = false;
