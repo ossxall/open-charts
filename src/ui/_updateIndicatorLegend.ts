@@ -17,15 +17,24 @@ const GEAR_ICON = `
   </svg>
 `;
 
-// Containers that already have the settings click delegation attached.
+/** 
+ * 
+ * Tracks containers that already have the delegated settings click handler. 
+ * Indicator items are recreated on each update, so the click listener is 
+ * bound once per container and reused through event delegation. 
+ * 
+ * */
 const _delegationBound = new WeakSet<HTMLElement>();
 
-/**
- * Binds a single click delegation handler on the indicators container.
- *
- * The items themselves are re-created on every frame, so the click
- * handling is attached once per container and triggers the series
- * settings modal based on the clicked button data.
+/** 
+ * 
+ * Binds the series-settings click handler to the indicators container.
+ * 1. Skip the container if delegation is already attached.
+ * 2. Listen for clicks and resolve the closest settings button.
+ * 3. Read the series id from the button's data attribute.
+ * 4. Resolve the series and open its settings modal.
+ * 5. The listener is tied to the engine abort signal and is removed when the engine is disposed. 
+ * 
  */
 function _bindSettingsDelegation(
   engine: ChartEngine,
@@ -56,6 +65,19 @@ function _bindSettingsDelegation(
   );
 }
 
+/**
+ * 
+ * Updates the indicator legend for the current bar.
+ * 1. Resolve the indicators container and ensure settings delegation is bound.
+ * 2. Iterate over all registered series.
+ * 3. Build the legend values for the current bar using the series definition.
+ * 4. Create the legend item if it does not exist.
+ * 5. Refresh its content, visibility state, and settings button.
+ * 6. Existing legend items are reused when possible. The settings button stores 
+ * the series id so the delegated click handler can resolve the corresponding
+ * series and open its settings modal. 
+ * 
+ */
 export function _updateIndicatorLegend(
   engine: ChartEngine,
   barIndex: number,
