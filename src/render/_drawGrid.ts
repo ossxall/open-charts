@@ -50,24 +50,37 @@ export function _drawGrid(
 
   ctx.stroke();
 
-  //
-  // Vertical time grid
-  //
-  const step = _timeGridStep(engine);
-
   ctx.beginPath();
 
-  for (
-    let i = engine.viewStart;
-    i < engine.viewEnd && i < engine.data.length;
-    i++
-  ) {
-    if (!_isTimeGridLine(engine, i, step)) continue;
+  // Vertical time grid.
+  if (!engine.hasData) {
+    // When there is no data yet there are no bar indices to derive
+    // grid positions from, so draw evenly-spaced lines across the
+    // full chart width to display the complete grid.
+    const target = Math.max(3, Math.floor(chartW / 80));
+    const spacing = chartW / target;
 
-    const x = Math.round(engine.utils.xOf(i)) + 0.5;
+    for (let n = 1; n < target; n++) {
+      const x = Math.round(n * spacing) + 0.5;
 
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x, chartH);
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, chartH);
+    }
+  } else {
+    const step = _timeGridStep(engine);
+
+    for (
+      let i = engine.viewStart;
+      i < engine.viewEnd && i < engine.data.length;
+      i++
+    ) {
+      if (!_isTimeGridLine(engine, i, step)) continue;
+
+      const x = Math.round(engine.utils.xOf(i)) + 0.5;
+
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, chartH);
+    }
   }
 
   ctx.stroke();
