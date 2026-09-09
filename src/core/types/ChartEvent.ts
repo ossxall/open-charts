@@ -56,6 +56,11 @@ export type ChartEvent =
       type: "series:params";
       seriesId: string;
       params: Record<string, unknown>;
+      /**
+       * Maps each param key to whether the param requires a recompute
+       * when it changes (i.e. its descriptor has `affectsCompute` set).
+       */
+      affectsCompute: Record<string, boolean>;
       series: AnyChartSeries;
     };
 

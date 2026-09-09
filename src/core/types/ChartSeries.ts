@@ -391,10 +391,21 @@ export class ChartSeries<
 
     this.engine.dirty = true;
 
+    const affectsCompute: Record<string, boolean> = {};
+
+    for (const [key, field] of Object.entries(
+      this.params as Record<string, unknown>,
+    )) {
+      affectsCompute[key] =
+        _isParamDescriptor(field) &&
+        (field as ParamDescriptor).affectsCompute === true;
+    }
+
     this.engine.emit({
       type: "series:params",
       seriesId: this.def.id,
       params: this.getParams(),
+      affectsCompute,
       series: this,
     });
 
