@@ -16,7 +16,7 @@
 export const PRICE_SCALE_W: number = 72;
 export const MIN_BAR_W: number = 1;
 export const MAX_BAR_W: number = 40;
-export const DEFAULT_BAR_W: number = 6;
+export const DEFAULT_BAR_W: number = 7;
 export const SCROLL_ZOOM_FACTOR: number = 0.1;
 
 export const PRICE_TAG_HEIGHT = 18;
