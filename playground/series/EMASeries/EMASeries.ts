@@ -18,6 +18,7 @@ import type {
   MainPane,
   SeriesDefinition,
 } from "../../../src/core/types";
+import type { ParamDescriptor } from "../../../src/utils/_paramValue";
 
 export type EMAValue = {
   time: number;
@@ -28,6 +29,7 @@ export type EMAValue = {
 
 interface EMAParams {
   lineWidth: number;
+  length: ParamDescriptor;
 }
 
 export interface EMAConfig {
@@ -52,7 +54,9 @@ export const EMA = (config: EMAConfig) => {
     height: config.height ?? "500px",
     params: config.params,
 
-    compute(data: EMAValue[]): any[] {
+    // The EMA values are pre-computed by the backend, so no
+    // recalculation happens here — data passes through unchanged.
+    compute(data: EMAValue[]): EMAValue[] {
       return data;
     },
 
@@ -87,6 +91,8 @@ export const EMA = (config: EMAConfig) => {
       ctx.stroke();
     },
 
+    // The backend already sends EMA values, so the incremental
+    // update just appends/replaces the incoming point.
     updateIncremental(
       data: readonly EMAValue[],
       values: EMAValue[],
@@ -99,9 +105,10 @@ export const EMA = (config: EMAConfig) => {
       }
     },
 
-    tooltipRow(values: any[], i: number): any {
-      if (values[i] === null) return null;
-      return { label: "MA55", value: values[i].toFixed(2), color: "#ffb830" };
+    tooltipRow(values: EMAValue[], i: number): any {
+      const ema = values[i] as EMAValue | null;
+      if (ema === null || ema === undefined) return null;
+      return { label: "MA", value: ema.value.toFixed(2), color: "#ffb830" };
     },
 
     priceTags(data: EMAValue[], values: EMAValue[]) {
