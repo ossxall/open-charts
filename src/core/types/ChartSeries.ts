@@ -330,6 +330,11 @@ export class ChartSeries<
    * 
    */
   public destroy(): void {
+    // Idempotent: only the first call removes the series and emits the event.
+    if (!this.engine._series.has(this.def.id)) {
+      return;
+    }
+
     this.engine._series.delete(this.def.id);
     this.engine.dirty = true;
     this.engine.hasData = false;
