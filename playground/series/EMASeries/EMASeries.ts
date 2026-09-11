@@ -29,7 +29,7 @@ export type EMAValue = {
 
 interface EMAParams {
   lineWidth: number;
-  length: ParamDescriptor;
+  period: ParamDescriptor;
 }
 
 export interface EMAConfig {
