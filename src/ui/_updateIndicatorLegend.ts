@@ -17,6 +17,24 @@ const GEAR_ICON = `
   </svg>
 `;
 
+const TRASH_ICON = `
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M3 6h18"></path>
+    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path>
+    <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+    <line x1="10" y1="11" x2="10" y2="17"></line>
+    <line x1="14" y1="11" x2="14" y2="17"></line>
+  </svg>
+`;
+
 /** 
  * 
  * Tracks containers that already have the delegated settings click handler. 
@@ -26,14 +44,17 @@ const GEAR_ICON = `
  * */
 const _delegationBound = new WeakSet<HTMLElement>();
 
-/** 
+/**
  * 
- * Binds the series-settings click handler to the indicators container.
+ * Binds the series-settings and series-delete click handlers to the
+ * indicators container.
+ *
  * 1. Skip the container if delegation is already attached.
- * 2. Listen for clicks and resolve the closest settings button.
+ * 2. Listen for clicks and resolve the closest settings/delete button.
  * 3. Read the series id from the button's data attribute.
- * 4. Resolve the series and open its settings modal.
- * 5. The listener is tied to the engine abort signal and is removed when the engine is disposed. 
+ * 4. Resolve the series and open its settings modal or destroy it.
+ * 5. Destroying a series emits a `series:removed` event.
+ * 6. The listener is tied to the engine abort signal and is removed when the engine is disposed. 
  * 
  */
 function _bindSettingsDelegation(
@@ -47,18 +68,35 @@ function _bindSettingsDelegation(
   container.addEventListener(
     "click",
     (event: MouseEvent) => {
-      const target = (event.target as HTMLElement).closest<HTMLElement>(
+      const settingsTarget = (event.target as HTMLElement).closest<HTMLElement>(
         ".chart-indicators-item-settings",
       );
 
-      if (!target || !target.dataset.seriesId) return;
+      if (settingsTarget && settingsTarget.dataset.seriesId) {
+        event.stopPropagation();
 
-      event.stopPropagation();
+        const series = engine._series.get(settingsTarget.dataset.seriesId);
 
-      const series = engine._series.get(target.dataset.seriesId);
+        if (series) {
+          _openSeriesSettings(engine, series);
+        }
 
-      if (series) {
-        _openSeriesSettings(engine, series);
+        return;
+      }
+
+      const deleteTarget = (event.target as HTMLElement).closest<HTMLElement>(
+        ".chart-indicators-item-delete",
+      );
+
+      if (deleteTarget && deleteTarget.dataset.seriesId) {
+        event.stopPropagation();
+
+        const series = engine._series.get(deleteTarget.dataset.seriesId);
+
+        if (series) {
+          // Emits a `series:removed` event to every chart subscriber.
+          series.destroy();
+        }
       }
     },
     { signal: engine._abortController.signal },
@@ -142,6 +180,15 @@ export function _updateIndicatorLegend(
         data-series-id="${def.id}"
       >
         ${GEAR_ICON}
+      </button>
+
+      <button
+        type="button"
+        class="chart-indicators-item-delete"
+        title="Delete series"
+        data-series-id="${def.id}"
+      >
+        ${TRASH_ICON}
       </button>
     `;
 
