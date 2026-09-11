@@ -329,7 +329,7 @@ export class ChartSeries<
    * Removes the series from the chart.
    * 
    */
-  public destroy(): void {
+  public destroy(options?: { silent?: boolean }): void {
     // Idempotent: only the first call removes the series and emits the event.
     if (!this.engine._series.has(this.def.id)) {
       return;
@@ -338,6 +338,10 @@ export class ChartSeries<
     this.engine._series.delete(this.def.id);
     this.engine.dirty = true;
     this.engine.hasData = false;
+
+    if (options?.silent) {
+      return;
+    }
 
     this.engine.emit({
       type: "series:removed",
