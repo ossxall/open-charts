@@ -240,6 +240,8 @@ export class ChartSeries<
 
     this.engine.priceScale.updateLayout();
 
+    this.engine.timeScale.scrollToRealTime();
+
     this.engine.dirty = true;
 
     this.engine.emit({
