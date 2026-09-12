@@ -221,6 +221,8 @@ export class ChartSeries<
 
     this.engine.timeScale.resetViewport();
 
+    this.engine.priceViewport.auto = true;
+
     this.engine.priceScale.updateLayout();
 
     this.engine.timeScale.scrollToRealTime();
@@ -257,6 +259,8 @@ export class ChartSeries<
     this.engine.hasData = true;
 
     this.interval = this.getInterval();
+
+    this.engine.priceViewport.auto = true;
 
     this.engine.priceScale.updateLayout();
 
@@ -362,6 +366,8 @@ export class ChartSeries<
 
       this.interval = this.getInterval();
 
+      this.engine.priceViewport.auto = true;
+
       this.engine.priceScale.updateLayout();
 
       this.engine.timeScale.scrollToRealTime();
@@ -432,6 +438,9 @@ export class ChartSeries<
     }
 
     this.engine.timeScale.resetViewport();
+
+    this.engine.priceViewport.auto = true;
+
     this.engine.priceScale.updateLayout();
 
     this.engine.dirty = true;
