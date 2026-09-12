@@ -314,14 +314,11 @@ export class ChartSeries<
     this._patchLazyChunk = Math.max(1, chunkSize);
 
     if (this._patchLazyTimer != null) {
-      // A stream is already in flight: append the new bars to the
-      // remaining queue and let the animation continue smoothly.
-      this._patchLazyPending = [
-        ...this._patchLazyPending.slice(this._patchLazyIndex),
-        ...fresh,
-      ];
-
-      this._patchLazyIndex = 0;
+      // A stream is already in flight: append the new bars to the end
+      // of the queue and let the animation continue smoothly. No
+      // compaction is done here — the consume index already advanced
+      // past the applied bars, so this is O(fresh) instead of O(queue).
+      this._patchLazyPending.push(...fresh);
 
       return () => this._stopPatchLazy();
     }
@@ -347,7 +344,19 @@ export class ChartSeries<
 
       this.data.push(...slice);
 
-      this.values = this.def.compute(this.data, this.params);
+      if (
+        slice.length === 1 &&
+        (this.values as unknown) !== (this.data as unknown) &&
+        this.def.updateIncremental
+      ) {
+        // Incremental path: O(period) instead of O(n) per animation tick.
+        // Never used when `values` aliases `data` (e.g. Candlestick's
+        // compute returns the input array): pushing data[last] onto the
+        // same array would duplicate bars.
+        this.def.updateIncremental(this.data, this.values, true, this.params);
+      } else {
+        this.values = this.def.compute(this.data, this.params);
+      }
 
       this.engine.hasData = true;
 
