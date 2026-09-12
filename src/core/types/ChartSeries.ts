@@ -142,6 +142,26 @@ export class ChartSeries<
 
   public interval: number = 0;
 
+  /**
+   * Active lazy patch stream timer, if any.
+   */
+  private _patchLazyTimer: ReturnType<typeof setInterval> | null = null;
+
+  /**
+   * Bars still pending insertion in the active lazy patch stream.
+   */
+  private _patchLazyPending: TData[] = [];
+
+  /**
+   * Number of `_patchLazyPending` bars already inserted.
+   */
+  private _patchLazyIndex: number = 0;
+
+  /**
+   * Bars appended per lazy patch tick.
+   */
+  private _patchLazyChunk: number = 1;
+
   /** User-defined series parameters. */
   public params: TParams;
 
@@ -252,6 +272,123 @@ export class ChartSeries<
     });
   }
 
+  /**
+   * Patches series data lazily over time.
+   *
+   * The incoming data is appended in chunks so the chart visibly replays
+   * the bars instead of being filled in a single frame. By default a
+   * single bar is appended per interval tick, producing a smooth
+   * one-bar-at-a-time animation.
+   *
+   * While a stream is in flight, further calls do NOT restart it: the
+   * new bars are merged into the remaining queue so the animation
+   * continues normally. The series time-deduplicates the incoming data,
+   * so re-patching a superset (as the backtesting loop does) is safe.
+   *
+   * @param data - Incoming data to patch incrementally.
+   * @param intervalMs - Delay between bars, in milliseconds. Defaults to 100.
+   * @param chunkSize - Bars appended per tick. Defaults to 1.
+   * @returns A cancel function that stops the pending stream.
+   */
+  public patchDataLazy(
+    data: readonly TData[],
+    intervalMs = 100,
+    chunkSize = 1,
+  ): () => void {
+    if (!data || data.length === 0) {
+      return () => this._stopPatchLazy();
+    }
+
+    const existingTimes = new Set(this.data.map((d) => d.time));
+
+    for (let i = this._patchLazyIndex; i < this._patchLazyPending.length; i++) {
+      existingTimes.add(this._patchLazyPending[i].time);
+    }
+
+    const fresh = data.filter((d) => !existingTimes.has(d.time));
+
+    if (fresh.length === 0) {
+      return () => {};
+    }
+
+    this._patchLazyChunk = Math.max(1, chunkSize);
+
+    if (this._patchLazyTimer != null) {
+      // A stream is already in flight: append the new bars to the
+      // remaining queue and let the animation continue smoothly.
+      this._patchLazyPending = [
+        ...this._patchLazyPending.slice(this._patchLazyIndex),
+        ...fresh,
+      ];
+
+      this._patchLazyIndex = 0;
+
+      return () => this._stopPatchLazy();
+    }
+
+    this._patchLazyPending = fresh;
+
+    this._patchLazyIndex = 0;
+
+    const step = () => {
+      const remaining = this._patchLazyPending.length - this._patchLazyIndex;
+
+      if (remaining <= 0) {
+        this._stopPatchLazy();
+        return;
+      }
+
+      const slice = this._patchLazyPending.slice(
+        this._patchLazyIndex,
+        this._patchLazyIndex + this._patchLazyChunk,
+      );
+
+      this._patchLazyIndex += slice.length;
+
+      this.data.push(...slice);
+
+      this.values = this.def.compute(this.data, this.params);
+
+      this.engine.hasData = true;
+
+      this.interval = this.getInterval();
+
+      this.engine.priceScale.updateLayout();
+
+      this.engine.timeScale.scrollToRealTime();
+
+      this.engine.dirty = true;
+
+      this.engine.emit({
+        type: "series:data",
+        seriesId: this.def.id,
+        source: "patch",
+        series: this,
+      });
+    };
+
+    step();
+
+    this._patchLazyTimer = setInterval(step, intervalMs);
+
+    return () => this._stopPatchLazy();
+  }
+
+  /**
+   * Cancels any lazily streamed patch currently in flight.
+   */
+  private _stopPatchLazy(): void {
+    if (this._patchLazyTimer != null) {
+      clearInterval(this._patchLazyTimer);
+
+      this._patchLazyTimer = null;
+    }
+
+    this._patchLazyPending = [];
+
+    this._patchLazyIndex = 0;
+  }
+
   public update(bar: TData): boolean {
     if (!bar) return false;
 
@@ -340,6 +477,8 @@ export class ChartSeries<
     this.engine._series.delete(this.def.id);
     this.engine.dirty = true;
     this.engine.hasData = false;
+
+    this._stopPatchLazy();
 
     if (options?.silent) {
       return;
