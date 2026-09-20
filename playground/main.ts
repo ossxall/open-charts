@@ -138,9 +138,9 @@ const chart1_adx = chart1_pane1.api.addSeries(
     layer: "background",
     priceTagColor: "white",
     params: {
-      diLength: 14,
-      adxLength: 14,
-      keyLevel: 23,
+      dilen: 14,
+      adxlen: 14,
+      key_level: 23,
     },
   }),
 );

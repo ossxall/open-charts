@@ -19,6 +19,8 @@ import type {
   PriceTag,
   SeriesDefinition,
 } from "../../../src/core/types";
+import type { ParamDescriptor } from "../../../src/utils/_paramValue";
+import { _resolveParamValue } from "../../../src/utils/_paramValue";
 import { drawLineSeries } from "../../helpers/drawLineSeries";
 
 interface ADXValue {
@@ -40,17 +42,19 @@ interface ADXValue {
 }
 
 interface ADXParams {
-  diLength: number;
-  adxLength: number;
-  keyLevel: number;
+  dilen: number | ParamDescriptor;
+  adxlen: number | ParamDescriptor;
+  key_level: number | ParamDescriptor;
 }
 
-interface ADXConfig {
+export interface ADXConfig {
   id: string;
   label: string;
   color: string;
   layer: "background" | "foreground";
   priceTagColor: string;
+  width?: string;
+  height?: string;
   params: ADXParams;
 }
 
@@ -64,7 +68,13 @@ export const ADXSeries = (config: ADXConfig) => {
 
     layer: config.layer,
 
+    width: config.width ?? "100%",
+
+    height: config.height ?? "500px",
+
     params: config.params,
+
+    priceTagColor: config.priceTagColor,
 
     compute(data: ADXValue[]): any[] {
       return data;
@@ -158,9 +168,11 @@ export const ADXSeries = (config: ADXConfig) => {
       ctx.restore();
 
       // Key level
+      const keyLevel = _resolveParamValue(params.key_level) as number;
+
       const y =
         Math.round(
-          engine.utils.yOf(params.keyLevel, pane, priceMin, priceMax),
+          engine.utils.yOf(keyLevel, pane, priceMin, priceMax),
         ) + 0.5;
 
       ctx.save();
@@ -215,8 +227,6 @@ export const ADXSeries = (config: ADXConfig) => {
       ];
     },
 
-    priceTagColor: "#6CFF4C",
-
     valueRange(data, values, start, end, params) {
       let lo = Infinity;
       let hi = -Infinity;
@@ -250,8 +260,9 @@ export const ADXSeries = (config: ADXConfig) => {
       }
 
       // Always include the key level in the visible range.
-      lo = Math.min(lo, params.keyLevel);
-      hi = Math.max(hi, params.keyLevel);
+      const keyLevel = _resolveParamValue(params.key_level) as number;
+      lo = Math.min(lo, keyLevel);
+      hi = Math.max(hi, keyLevel);
 
       return { lo, hi };
     },

@@ -1,8 +1,26 @@
 import { expect, test } from "vitest";
-import { rma } from "./ADXSeries";
+import { ADXSeries, type ADXConfig } from "./ADXSeries";
 
-test("adds 1 + 2 to equal 3", () => {
-  const adx = rma([1], 3);
+const base: ADXConfig = {
+  id: "adx",
+  label: "ADX",
+  color: "white",
+  layer: "foreground",
+  priceTagColor: "white",
+  params: {
+    dilen: 14,
+    adxlen: 14,
+    key_level: 23,
+  },
+};
 
-  expect(1).toBe(1);
+test("factory exposes container size and backend param keys", () => {
+  const series = ADXSeries(base);
+
+  expect(series.id).toBe("adx");
+  expect(series.width).toBe("100%");
+  expect(series.height).toBe("500px");
+  expect(series.params.dilen).toBe(14);
+  expect(series.params.adxlen).toBe(14);
+  expect(series.params.key_level).toBe(23);
 });
