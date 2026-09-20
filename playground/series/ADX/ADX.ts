@@ -58,7 +58,7 @@ export interface ADXConfig {
   params: ADXParams;
 }
 
-export const ADXSeries = (config: ADXConfig) => {
+export const ADX = (config: ADXConfig) => {
   const series: SeriesDefinition<ADXValue, ADXValue, ADXParams> = {
     id: config.id,
 

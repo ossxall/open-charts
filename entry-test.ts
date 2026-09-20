@@ -1,5 +1,5 @@
 import { createChart } from "./src/index";
-import { ADXSeries } from "./playground/series/ADXSeries/ADXSeries";
+import { ADX } from "./playground/series/ADX/ADX";
 
 const area = document.getElementById("chart") as HTMLElement;
 
@@ -8,7 +8,7 @@ const chart = createChart(area);
 chart.api.applyOptions({ legend: "SYM 5m" });
 
 chart.api.addSeries(
-  ADXSeries({
+  ADX({
     id: "adx-5m-1",
     label: "ADX 14",
     color: "#2962FF",

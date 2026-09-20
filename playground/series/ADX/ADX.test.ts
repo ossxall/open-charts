@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { ADXSeries, type ADXConfig } from "./ADXSeries";
+import { ADX, type ADXConfig } from "./ADX";
 
 const base: ADXConfig = {
   id: "adx",
@@ -15,7 +15,7 @@ const base: ADXConfig = {
 };
 
 test("factory exposes container size and backend param keys", () => {
-  const series = ADXSeries(base);
+  const series = ADX(base);
 
   expect(series.id).toBe("adx");
   expect(series.width).toBe("100%");

@@ -1,6 +1,6 @@
 import { decode } from "@msgpack/msgpack";
 import { createChart } from "../src/index";
-import { ADXSeries } from "./series/ADXSeries/ADXSeries";
+import { ADX } from "./series/ADX/ADX";
 import { CandleBubbleSeries } from "./series/CandleBubbleSeries/CandleBubbleSeries";
 import { EMASeries } from "./series/EMASeries/EMASeries";
 import { SqueezeSeries } from "./series/Squeeze/SqueezeSeries";
@@ -131,7 +131,7 @@ const chart2_ema25 = chart2.api.addSeries(
 );
  */
 const chart1_adx = chart1_pane1.api.addSeries(
-  ADXSeries({
+  ADX({
     id: "adx",
     label: "ADX",
     color: "white",
