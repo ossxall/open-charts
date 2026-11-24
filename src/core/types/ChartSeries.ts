@@ -79,7 +79,7 @@ export interface SeriesDefinition<
   ): void;
 
   /** Updates the cached values incrementally. */
-  updateIncremental(
+  updateIncremental?(
     data: readonly TData[],
     values: TValue[],
     isNewBar: boolean,
@@ -211,7 +211,7 @@ export class ChartSeries<
 
     this.data = [...data];
 
-    this.values = this.def.compute(data, this.params);
+    this.values = this.def.compute(this.data, this.params);
 
     this.engine.hasData = data.length > 0;
 
@@ -306,7 +306,10 @@ export class ChartSeries<
     const existingTimes = new Set(this.data.map((d) => d.time));
 
     for (let i = this._patchLazyIndex; i < this._patchLazyPending.length; i++) {
-      existingTimes.add(this._patchLazyPending[i].time);
+      const pending = this._patchLazyPending[i];
+      if (pending) {
+        existingTimes.add(pending.time);
+      }
     }
 
     const fresh = data.filter((d) => !existingTimes.has(d.time));
@@ -404,46 +407,157 @@ export class ChartSeries<
     this._patchLazyIndex = 0;
   }
 
+  /**
+   * Inserts or replaces a bar. Kept as the short-form live-update API.
+   *
+   * @param bar Incoming bar.
+   * @returns Whether the series was changed.
+   */
   public update(bar: TData): boolean {
-    if (!bar) return false;
+    if (!bar || !Number.isFinite(bar.time)) {
+      return false;
+    }
 
-    let isNewBar = false;
+    const latest = this.data.at(-1);
+    if (latest && bar.time < latest.time) {
+      return false;
+    }
 
-    if (this.data.length === 0) {
-      this.data.push(bar);
-    } else {
-      const last = this.data[this.data.length - 1];
+    return this.upsert(bar);
+  }
 
-      if (bar.time < last.time) {
-        return false;
-      }
+  /**
+   * Inserts or replaces a bar while keeping the series ordered by time.
+   *
+   * Appending a bar or revising the latest bar uses the definition's
+   * `updateIncremental` hook when available. Older corrections and insertions
+   * fall back to a full compute so dependent values remain correct.
+   *
+   * @param bar Incoming bar.
+   * @param options Optional bound for the retained data window.
+   * @returns Whether the series was changed.
+   */
+  public upsert(
+    bar: TData,
+    options: { maxDataPoints?: number } = {},
+  ): boolean {
+    if (!bar || !Number.isFinite(bar.time)) return false;
 
-      isNewBar = bar.time > last.time;
+    const maxDataPoints = options.maxDataPoints;
+    if (
+      maxDataPoints !== undefined
+      && (!Number.isInteger(maxDataPoints) || maxDataPoints < 1)
+    ) {
+      throw new RangeError("maxDataPoints must be a positive integer");
+    }
 
-      if (isNewBar) {
-        this.data.push(bar);
+    const maxPoints = maxDataPoints === undefined
+      ? undefined
+      : Math.floor(maxDataPoints);
+    const oldLength = this.data.length;
+    const oldViewStart = this.engine.viewStart;
+    const oldViewEnd = this.engine.viewEnd;
+    const wasAtLiveEdge = oldLength === 0 || oldViewEnd >= oldLength;
+    const valuesAliasData =
+      (this.values as unknown) === (this.data as unknown);
+
+    // Find the first bar whose time is not less than the incoming time.
+    let low = 0;
+    let high = oldLength;
+    while (low < high) {
+      const mid = low + Math.floor((high - low) / 2);
+      if (this.data[mid]!.time < bar.time) {
+        low = mid + 1;
       } else {
-        this.data[this.data.length - 1] = bar;
+        high = mid;
       }
     }
 
-    this.values = this.def.compute(this.data, this.params);
+    const index = low;
+    const exists = index < oldLength && this.data[index]!.time === bar.time;
+    const isAppend = index === oldLength;
+    const isLatestReplacement = exists && index === oldLength - 1;
+
+    if (exists) {
+      this.data[index] = bar;
+    } else {
+      this.data.splice(index, 0, bar);
+    }
+
+    const canUpdateIncrementally = isAppend || isLatestReplacement;
+    if (canUpdateIncrementally) {
+      // Some series return the source data itself from compute(). Mutating
+      // `data` already updates `values` in that case; calling the hook would
+      // append the same point twice.
+      if (!valuesAliasData) {
+        if (this.def.updateIncremental) {
+          this.def.updateIncremental(
+            this.data,
+            this.values,
+            isAppend,
+            this.params,
+          );
+        } else {
+          this.values = this.def.compute(this.data, this.params);
+        }
+      }
+    } else {
+      // A correction before the latest point can affect every subsequent
+      // indicator value, so use the definition's canonical full computation.
+      this.values = this.def.compute(this.data, this.params);
+    }
+
+    let trimmed = 0;
+    if (maxPoints !== undefined && this.data.length > maxPoints) {
+      trimmed = this.data.length - maxPoints;
+      this.data.splice(0, trimmed);
+      if (!valuesAliasData) {
+        this.values.splice(0, trimmed);
+      }
+    }
 
     this.engine.hasData = this.data.length > 0;
 
     if (!this.engine.hasData) return false;
 
-    if (!this.interval && this.data.length >= 2) {
+    if ((!this.interval || !canUpdateIncrementally) && this.data.length >= 2) {
       this.interval = this.getInterval();
     }
 
-    this.engine.timeScale.resetViewport();
-
-    this.engine.priceViewport.auto = true;
+    if (oldLength === 0) {
+      this.engine.priceViewport.auto = true;
+      this.engine.timeScale.resetViewport();
+    } else if (wasAtLiveEdge && (isAppend || !exists)) {
+      this.engine.timeScale.scrollToRealTime();
+    } else {
+      // Keep the same logical bars in view when an older bar is inserted or
+      // the bounded data window drops points from its front.
+      const insertedBeforeView = !exists && index < oldViewStart;
+      const adjustedStart = oldViewStart + (insertedBeforeView ? 1 : 0);
+      const adjustedEnd = oldViewEnd + (insertedBeforeView ? 1 : 0);
+      if (adjustedStart >= trimmed) {
+        this.engine.viewStart = adjustedStart - trimmed;
+        this.engine.viewEnd = Math.max(
+          this.engine.viewStart,
+          adjustedEnd - trimmed,
+        );
+      } else {
+        this.engine.viewStart = 0;
+        this.engine.viewEnd = Math.max(0, adjustedEnd - adjustedStart);
+      }
+    }
 
     this.engine.priceScale.updateLayout();
 
+    if (this.data.length !== oldLength) {
+      this.engine.timeScale.updateScrollThumb();
+    }
+    if (!exists) {
+      this.engine.timeAxisDirty = true;
+    }
+
     this.engine.dirty = true;
+    this.engine.overlayDirty = true;
 
     this.engine.emit({
       type: "series:data",
