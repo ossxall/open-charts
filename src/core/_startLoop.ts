@@ -24,6 +24,8 @@ import { _renderDrawingModules } from "../render/_renderDrawingModules";
  * @param engine Chart engine instance.
  */
 export function _startLoop(engine: ChartEngine): void {
+  if (engine._running) return;
+
   // Enable the render loop.
   engine._running = true;
 

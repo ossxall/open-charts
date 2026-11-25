@@ -97,6 +97,19 @@ export class ChartCore {
     _startLoop(this.engine);
   }
 
+  /**
+   * Pauses rendering without discarding chart data or dirty state.
+   * Call startLoop() after resizing the chart when it becomes visible again.
+   */
+  public pauseLoop(): void {
+    this.engine._running = false;
+
+    if (this.engine._rafId) {
+      cancelAnimationFrame(this.engine._rafId);
+      this.engine._rafId = 0;
+    }
+  }
+
   public visiblePriceRange(): PriceRange {
     return _visiblePriceRange(this.engine);
   }

@@ -101,6 +101,11 @@ function _resizePriceScale(
  * @param engine Chart engine.
  */
 export function _resize(engine: ChartEngine): void {
+  const mainRect: DOMRect = engine.paneMainEl.getBoundingClientRect();
+  if (mainRect.width <= 0 || mainRect.height <= 0) {
+    return;
+  }
+
   // Current device pixel ratio.
   const dpr: number = window.devicePixelRatio || 1;
 
@@ -113,7 +118,6 @@ export function _resize(engine: ChartEngine): void {
   _resizeCanvas(engine.cTime, engine.timeAxisEl, dpr);
 
   // Read the updated layout.
-  const mainRect: DOMRect = engine.paneMainEl.getBoundingClientRect();
   const timeRect: DOMRect = engine.timeAxisEl.getBoundingClientRect();
 
   // Resize the fixed-width price scale.

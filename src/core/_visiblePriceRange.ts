@@ -40,6 +40,7 @@ export function _visiblePriceRange(engine: ChartEngine): PriceRange {
 
     lo = range.lo;
     hi = range.hi;
+
   } else {
     lo = Infinity;
     hi = -Infinity;
